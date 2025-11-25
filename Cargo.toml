@@ -1,0 +1,60 @@
+[workspace]
+resolver = "2"
+members = [
+  "contracts/ad-registry",
+  "contracts/campaign-orchestrator",
+  "contracts/campaign-lifecycle",
+  "contracts/escrow-vault",
+  "contracts/fraud-prevention",
+  "contracts/payment-processor",
+  "contracts/governance-token",
+  "contracts/governance-dao",
+  "contracts/governance-core",
+  "contracts/publisher-verification",
+  "contracts/publisher-network",
+  "contracts/publisher-reputation",
+  "contracts/analytics-aggregator",
+  "contracts/campaign-analytics",
+  "contracts/audience-segments",
+  "contracts/auction-engine",
+  "contracts/creative-marketplace",
+  "contracts/identity-registry",
+  "contracts/kyc-registry",
+  "contracts/liquidity-pool",
+  "contracts/milestone-tracker",
+  "contracts/multisig-treasury",
+  "contracts/oracle-integration",
+  "contracts/payout-automation",
+  "contracts/performance-oracle",
+  "contracts/privacy-layer",
+  "contracts/recurring-payment",
+  "contracts/refund-processor",
+  "contracts/revenue-settlement",
+  "contracts/rewards-distributor",
+  "contracts/subscription-manager",
+  "contracts/subscription-benefits",
+  "contracts/targeting-engine",
+  "contracts/timelock-executor",
+  "contracts/token-bridge",
+  "contracts/wrapped-token",
+  "contracts/dispute-resolution",
+  "contracts/budget-optimizer",
+  "contracts/anomaly-detector",
+]
+
+[workspace.dependencies]
+soroban-sdk = "22.0.0"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true
