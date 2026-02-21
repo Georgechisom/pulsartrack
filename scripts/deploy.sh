@@ -1,46 +1,83 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# PulsarTrack - Stellar Testnet Deployment Script
-# Deploys all 39 Soroban contracts to Stellar testnet
+# PulsarTrack - Stellar Deployment Script
+# Deploys Soroban contracts with idempotency and flags
 
 NETWORK="${STELLAR_NETWORK:-testnet}"
 IDENTITY="${STELLAR_IDENTITY:-pulsartrack-deployer}"
 OUTPUT_DIR="$(dirname "$0")/../deployments"
-CONTRACTS_DIR="$(dirname "$0")/../contracts"
 WASM_DIR="$(dirname "$0")/../target/wasm32-unknown-unknown/release"
+
+FORCE=false
+DRY_RUN=false
+
+# Simple argument parsing
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --force)
+      FORCE=true
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    --network)
+      NETWORK="$2"
+      shift 2
+      ;;
+    --identity)
+      IDENTITY="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
 
 echo "=============================================="
 echo "  PulsarTrack - Soroban Contract Deployment"
 echo "  Network: $NETWORK"
 echo "  Identity: $IDENTITY"
+echo "  Force: $FORCE"
+echo "  Dry Run: $DRY_RUN"
 echo "=============================================="
 
-# Ensure deployer identity exists
-if ! stellar keys show "$IDENTITY" &>/dev/null; then
-  echo "[Setup] Generating deployer keypair: $IDENTITY"
-  stellar keys generate --network "$NETWORK" "$IDENTITY"
+# Ensure deployer identity exists (skip in dry run if possible)
+if [ "$DRY_RUN" = false ]; then
+  if ! stellar keys show "$IDENTITY" &>/dev/null; then
+    echo "[Setup] Generating deployer keypair: $IDENTITY"
+    stellar keys generate --network "$NETWORK" "$IDENTITY"
+  fi
+  DEPLOYER_ADDRESS=$(stellar keys address "$IDENTITY")
+  echo "[Info] Deployer address: $DEPLOYER_ADDRESS"
+  
+  if [ "$NETWORK" = "testnet" ]; then
+    echo "[Funding] Requesting testnet XLM from Friendbot..."
+    curl -s "https://friendbot.stellar.org?addr=$DEPLOYER_ADDRESS" > /dev/null || true
+    sleep 2
+  fi
+else
+  DEPLOYER_ADDRESS="DRY_RUN_ADDRESS"
+  echo "[Info] Dry run mode - skipping identity check/funding"
 fi
 
-DEPLOYER_ADDRESS=$(stellar keys address "$IDENTITY")
-echo "[Info] Deployer address: $DEPLOYER_ADDRESS"
-
-# Fund account on testnet if needed
-if [ "$NETWORK" = "testnet" ]; then
-  echo "[Funding] Requesting testnet XLM from Friendbot..."
-  curl -s "https://friendbot.stellar.org?addr=$DEPLOYER_ADDRESS" > /dev/null || true
-  sleep 2
-fi
-
-# Build all contracts
-echo ""
-echo "[Build] Building all Soroban contracts..."
-cargo build --release --target wasm32-unknown-unknown 2>&1 | tail -5
-
-# Create output file
-DEPLOY_FILE="$OUTPUT_DIR/deployed-$NETWORK-$(date +%Y%m%d-%H%M%S).json"
+# Stabilized deployment file
+DEPLOY_FILE="$OUTPUT_DIR/deployed-$NETWORK.json"
 mkdir -p "$OUTPUT_DIR"
-echo '{"network": "'"$NETWORK"'", "deployer": "'"$DEPLOYER_ADDRESS"'", "contracts": {}}' > "$DEPLOY_FILE"
+
+if [ ! -f "$DEPLOY_FILE" ]; then
+  echo '{"network": "'"$NETWORK"'", "deployer": "'"$DEPLOYER_ADDRESS"'", "contracts": {}}' > "$DEPLOY_FILE"
+fi
+
+# Build all contracts (unless already built or dry run)
+if [ "$DRY_RUN" = false ]; then
+  echo ""
+  echo "[Build] Building all Soroban contracts..."
+  cargo build --release --target wasm32-unknown-unknown 2>&1 | tail -5
+fi
 
 # Deploy function
 deploy_contract() {
@@ -48,8 +85,22 @@ deploy_contract() {
   local WASM_NAME="$2"
   local WASM_PATH="$WASM_DIR/${WASM_NAME}.wasm"
 
+  # Check if already deployed
+  local EXISTING_ID
+  EXISTING_ID=$(python3 -c "import json; d=json.load(open('$DEPLOY_FILE')); print(d['contracts'].get('$NAME',''))" 2>/dev/null || echo "")
+
+  if [ -n "$EXISTING_ID" ] && [ "$FORCE" = false ]; then
+    echo "[Skip] $NAME already deployed: $EXISTING_ID"
+    return 0
+  fi
+
+  if [ "$DRY_RUN" = true ]; then
+    echo "[Dry Run] Would deploy $NAME ($WASM_PATH)"
+    return 0
+  fi
+
   if [ ! -f "$WASM_PATH" ]; then
-    echo "[Skip] $NAME - WASM not found: $WASM_PATH"
+    echo "[Error] $NAME - WASM not found: $WASM_PATH"
     return 1
   fi
 
@@ -67,62 +118,51 @@ deploy_contract() {
   echo "  -> $CONTRACT_ID"
 
   # Update deploy file
-  local TMP
-  TMP=$(mktemp)
   python3 -c "
-import json, sys
+import json
 with open('$DEPLOY_FILE') as f:
     d = json.load(f)
 d['contracts']['$NAME'] = '$CONTRACT_ID'
 with open('$DEPLOY_FILE', 'w') as f:
     json.dump(d, f, indent=2)
-" 2>/dev/null || true
-
-  echo "$CONTRACT_ID"
+"
 }
 
-echo ""
-echo "[Deploying] Core contracts..."
+# Core contracts
 deploy_contract "ad_registry"           "pulsar_ad_registry"
 deploy_contract "campaign_orchestrator" "pulsar_campaign_orchestrator"
 deploy_contract "escrow_vault"          "pulsar_escrow_vault"
 deploy_contract "fraud_prevention"      "pulsar_fraud_prevention"
 deploy_contract "payment_processor"     "pulsar_payment_processor"
 
-echo ""
-echo "[Deploying] Governance contracts..."
+# Governance
 deploy_contract "governance_token"      "pulsar_governance_token"
 deploy_contract "governance_dao"        "pulsar_governance_dao"
 deploy_contract "governance_core"       "pulsar_governance_core"
 deploy_contract "timelock_executor"     "pulsar_timelock_executor"
 
-echo ""
-echo "[Deploying] Publisher contracts..."
+# Publisher
 deploy_contract "publisher_verification" "pulsar_publisher_verification"
 deploy_contract "publisher_network"      "pulsar_publisher_network"
 deploy_contract "publisher_reputation"   "pulsar_publisher_reputation"
 
-echo ""
-echo "[Deploying] Analytics contracts..."
+# Analytics
 deploy_contract "analytics_aggregator"  "pulsar_analytics_aggregator"
 deploy_contract "campaign_analytics"    "pulsar_campaign_analytics"
 deploy_contract "campaign_lifecycle"    "pulsar_campaign_lifecycle"
 
-echo ""
-echo "[Deploying] Privacy & Targeting contracts..."
+# Privacy & Targeting
 deploy_contract "privacy_layer"         "pulsar_privacy_layer"
 deploy_contract "targeting_engine"      "pulsar_targeting_engine"
 deploy_contract "audience_segments"     "pulsar_audience_segments"
 deploy_contract "identity_registry"     "pulsar_identity_registry"
 deploy_contract "kyc_registry"          "pulsar_kyc_registry"
 
-echo ""
-echo "[Deploying] Marketplace contracts..."
+# Marketplace
 deploy_contract "auction_engine"        "pulsar_auction_engine"
 deploy_contract "creative_marketplace"  "pulsar_creative_marketplace"
 
-echo ""
-echo "[Deploying] Financial contracts..."
+# Financial
 deploy_contract "subscription_manager"  "pulsar_subscription_manager"
 deploy_contract "subscription_benefits" "pulsar_subscription_benefits"
 deploy_contract "liquidity_pool"        "pulsar_liquidity_pool"
@@ -136,8 +176,7 @@ deploy_contract "refund_processor"      "pulsar_refund_processor"
 deploy_contract "revenue_settlement"    "pulsar_revenue_settlement"
 deploy_contract "rewards_distributor"   "pulsar_rewards_distributor"
 
-echo ""
-echo "[Deploying] Bridge & Utility contracts..."
+# Bridge & Utility
 deploy_contract "token_bridge"          "pulsar_token_bridge"
 deploy_contract "wrapped_token"         "pulsar_wrapped_token"
 deploy_contract "dispute_resolution"    "pulsar_dispute_resolution"
