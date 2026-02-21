@@ -186,3 +186,5 @@ impl BudgetOptimizerContract {
         }
     }
 }
+
+mod test;

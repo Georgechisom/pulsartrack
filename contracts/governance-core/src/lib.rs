@@ -163,3 +163,5 @@ impl GovernanceCoreContract {
             .get(&DataKey::RoleGrant(account, role))
     }
 }
+
+mod test;

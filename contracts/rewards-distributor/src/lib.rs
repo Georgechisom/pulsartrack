@@ -183,3 +183,5 @@ impl RewardsDistributorContract {
         env.storage().persistent().get(&DataKey::UserRewards(user))
     }
 }
+
+mod test;

@@ -181,3 +181,5 @@ impl AnalyticsAggregatorContract {
             .get(&DataKey::HourlyStats(campaign_id, hour))
     }
 }
+
+mod test;

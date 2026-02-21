@@ -203,3 +203,5 @@ impl DisputeResolutionContract {
         env.storage().instance().get(&DataKey::DisputeCounter).unwrap_or(0)
     }
 }
+
+mod test;

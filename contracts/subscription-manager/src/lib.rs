@@ -181,3 +181,5 @@ impl SubscriptionManagerContract {
         }
     }
 }
+
+mod test;

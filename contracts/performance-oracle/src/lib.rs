@@ -167,3 +167,5 @@ impl PerformanceOracleContract {
         env.storage().persistent().set(&DataKey::Consensus(campaign_id), &consensus);
     }
 }
+
+mod test;

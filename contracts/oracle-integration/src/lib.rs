@@ -153,3 +153,5 @@ impl OracleIntegrationContract {
         }
     }
 }
+
+mod test;

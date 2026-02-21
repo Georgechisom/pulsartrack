@@ -239,3 +239,5 @@ impl LiquidityPoolContract {
         env.storage().persistent().get(&DataKey::Borrow(campaign_id))
     }
 }
+
+mod test;

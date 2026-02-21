@@ -188,3 +188,5 @@ impl PublisherReputationContract {
         env.storage().persistent().get(&DataKey::ReviewCount(publisher)).unwrap_or(0)
     }
 }
+
+mod test;

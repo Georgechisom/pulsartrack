@@ -398,3 +398,5 @@ impl AdRegistryContract {
             .set(&DataKey::FlagThreshold, &threshold);
     }
 }
+
+mod test;

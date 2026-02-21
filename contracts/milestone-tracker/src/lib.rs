@@ -185,3 +185,5 @@ impl MilestoneTrackerContract {
         env.storage().persistent().get(&DataKey::CampaignMilestoneCount(campaign_id)).unwrap_or(0)
     }
 }
+
+mod test;

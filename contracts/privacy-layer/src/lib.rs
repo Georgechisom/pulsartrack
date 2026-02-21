@@ -186,3 +186,5 @@ impl PrivacyLayerContract {
         env.storage().persistent().get(&DataKey::Proof(proof_id))
     }
 }
+
+mod test;

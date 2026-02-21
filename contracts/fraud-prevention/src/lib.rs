@@ -335,3 +335,5 @@ impl FraudPreventionContract {
         base_score + proof_bonus
     }
 }
+
+mod test;

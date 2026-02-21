@@ -185,3 +185,5 @@ impl IdentityRegistryContract {
         env.storage().instance().get(&DataKey::IdentityCount).unwrap_or(0)
     }
 }
+
+mod test;

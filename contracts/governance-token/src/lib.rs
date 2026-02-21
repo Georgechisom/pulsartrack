@@ -315,3 +315,5 @@ impl GovernanceTokenContract {
             .get(&DataKey::Delegation(delegator))
     }
 }
+
+mod test;

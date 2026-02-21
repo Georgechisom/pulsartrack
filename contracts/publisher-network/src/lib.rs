@@ -169,3 +169,5 @@ impl PublisherNetworkContract {
         env.storage().instance().get(&DataKey::NodeCount).unwrap_or(0)
     }
 }
+
+mod test;

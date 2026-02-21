@@ -192,3 +192,5 @@ impl RecurringPaymentContract {
         env.storage().persistent().get(&DataKey::Payment(payment_id))
     }
 }
+
+mod test;

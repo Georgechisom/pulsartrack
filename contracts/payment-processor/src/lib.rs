@@ -333,3 +333,5 @@ impl PaymentProcessorContract {
         env.storage().persistent().set(&key, &stats);
     }
 }
+
+mod test;

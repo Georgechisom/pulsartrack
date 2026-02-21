@@ -168,3 +168,5 @@ impl RefundProcessorContract {
         env.storage().persistent().get(&DataKey::Refund(refund_id))
     }
 }
+
+mod test;

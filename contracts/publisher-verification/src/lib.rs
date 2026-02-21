@@ -357,3 +357,5 @@ impl PublisherVerificationContract {
         }
     }
 }
+
+mod test;

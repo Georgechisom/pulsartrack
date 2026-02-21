@@ -194,3 +194,5 @@ impl AnomalyDetectorContract {
         env.storage().instance().get(&DataKey::ReportCounter).unwrap_or(0)
     }
 }
+
+mod test;

@@ -163,3 +163,5 @@ impl AudienceSegmentsContract {
         env.storage().persistent().get(&DataKey::MemberCount(segment_id)).unwrap_or(0)
     }
 }
+
+mod test;

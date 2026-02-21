@@ -186,3 +186,5 @@ impl TokenBridgeContract {
         env.storage().persistent().get(&DataKey::Deposit(deposit_id))
     }
 }
+
+mod test;

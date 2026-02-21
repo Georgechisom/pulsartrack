@@ -208,3 +208,5 @@ impl KycRegistryContract {
         }
     }
 }
+
+mod test;

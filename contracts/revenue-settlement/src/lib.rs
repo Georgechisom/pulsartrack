@@ -187,3 +187,5 @@ impl RevenueSettlementContract {
         env.storage().persistent().get(&DataKey::Settlement(settlement_id))
     }
 }
+
+mod test;

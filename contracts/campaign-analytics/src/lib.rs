@@ -177,3 +177,5 @@ impl CampaignAnalyticsContract {
         env.storage().persistent().get(&DataKey::RetentionMetrics(campaign_id))
     }
 }
+
+mod test;

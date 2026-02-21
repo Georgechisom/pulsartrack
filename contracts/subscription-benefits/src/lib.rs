@@ -129,3 +129,5 @@ impl SubscriptionBenefitsContract {
         env.storage().persistent().get(&DataKey::BenefitUsage(subscriber, benefit_id))
     }
 }
+
+mod test;

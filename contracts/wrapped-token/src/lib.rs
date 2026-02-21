@@ -178,3 +178,5 @@ impl WrappedTokenContract {
         env.storage().persistent().get(&DataKey::UserBalance(symbol, user)).unwrap_or(0)
     }
 }
+
+mod test;

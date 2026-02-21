@@ -231,3 +231,5 @@ impl MultisigTreasuryContract {
         env.storage().instance().get(&DataKey::Signers).unwrap()
     }
 }
+
+mod test;

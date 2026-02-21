@@ -228,3 +228,5 @@ impl CreativeMarketplaceContract {
         }
     }
 }
+
+mod test;
