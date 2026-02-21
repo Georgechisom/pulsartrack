@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../config/database';
 import { callReadOnly } from '../services/soroban-client';
 import { CONTRACT_IDS } from '../config/stellar';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -58,6 +59,29 @@ router.get('/', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch auctions', details: err.message });
+  }
+});
+
+router.post('/:auctionId/bid', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const address = (req as any).stellarAddress;
+    const auctionId = parseInt(req.params.auctionId);
+    const { campaignId, amountStroops } = req.body;
+
+    const { rows } = await pool.query(
+      `INSERT INTO bids (auction_id, bidder, campaign_id, amount_stroops)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [auctionId, address, campaignId, amountStroops]
+    );
+
+    await pool.query(
+      `UPDATE auctions SET bid_count = bid_count + 1 WHERE auction_id = $1`,
+      [auctionId]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to submit bid', details: err.message });
   }
 });
 
