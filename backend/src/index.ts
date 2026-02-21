@@ -3,15 +3,28 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import Redis from 'ioredis';
 import { createServer } from 'http';
 import apiRoutes from './api/routes';
-import { errorHandler, rateLimit } from './middleware/auth';
+import { errorHandler, rateLimit, configureRateLimiters } from './middleware/auth';
 import { setupWebSocketServer } from './services/websocket-server';
 import { checkDbConnection } from './config/database';
 import prisma from './db/prisma';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '4000', 10);
+
+// Redis connection for rate limiting
+const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: 1,
+});
+
+redisClient.on('connect', () => console.log('[Redis] Connected'));
+redisClient.on('error', (err) => console.error('[Redis] Error:', err.message));
+
+// Initialize Redis-backed rate limiters
+configureRateLimiters(redisClient);
 
 // Middleware
 app.use(helmet());
@@ -21,7 +34,7 @@ app.use(cors({
 }));
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
-app.use(rateLimit(200, 60_000));
+app.use(rateLimit());
 
 // API routes
 app.use('/api', apiRoutes);
