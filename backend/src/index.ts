@@ -98,7 +98,11 @@ async function start() {
   });
 }
 
-start().catch((err) => {
-  logger.error(err, "Failed to start server");
-  process.exit(1);
-});
+if (process.env.NODE_ENV !== 'test') {
+  start().catch((err) => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
+}
+
+export { server };
