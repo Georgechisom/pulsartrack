@@ -46,9 +46,7 @@ fn fund_subscriber(env: &Env, token: &Address, subscriber: &Address) {
 const STARTER_MONTHLY: i128 = 99_000_000;
 const GROWTH_MONTHLY: i128 = 299_000_000;
 const BUSINESS_MONTHLY: i128 = 799_000_000;
-const ENTERPRISE_MONTHLY: i128 = 1_999_000_000;
 const GROWTH_ANNUAL: i128 = 2_990_000_000;
-const BUSINESS_ANNUAL: i128 = 7_990_000_000;
 
 const MONTHLY_SECS: u64 = 30 * 24 * 3600;
 const ANNUAL_SECS: u64 = 365 * 24 * 3600;
@@ -253,8 +251,8 @@ fn test_upgrade_zero_net_charge_when_credit_exceeds_new_price() {
     c.change_tier(&subscriber, &SubscriptionTier::Enterprise, &false, &true);
     let net_charged = balance(&env, &token, &treasury) - treasury_before;
 
-    // credit = BUSINESS_ANNUAL (full since no time has passed)
-    // net = max(ENTERPRISE_MONTHLY - BUSINESS_ANNUAL, 0) = 0
+    // credit = 7_990_000_000 (BUSINESS_ANNUAL, full since no time has passed)
+    // net = max(1_999_000_000 - 7_990_000_000, 0) = 0
     assert_eq!(net_charged, 0, "credit should fully absorb the new price");
 }
 
