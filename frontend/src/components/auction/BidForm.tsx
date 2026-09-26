@@ -52,7 +52,7 @@ export function BidForm({ auction, campaignId, onSuccess, onCancel }: BidFormPro
       await placeBid({
         auctionId: Number(auction.auction_id),
         campaignId: parseInt(data.campaignId),
-        amountStroops: xlmToStroops(parseFloat(data.bidAmountXlm)),
+        amountStroops: xlmToStroops(data.bidAmountXlm),
       });
       onSuccess?.();
     } catch (err: unknown) {
@@ -152,3 +152,4 @@ export function BidForm({ auction, campaignId, onSuccess, onCancel }: BidFormPro
     </div>
   );
 }
+

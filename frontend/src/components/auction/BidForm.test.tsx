@@ -99,12 +99,6 @@ describe('BidForm', () => {
     });
 });
 
-describe('stroopsToXlm / xlmToStroops conversions', () => {
-    it('converts 1 XLM correctly to and from stroops', () => {
-        expect(stroopsToXlm(10_000_000n)).toBe(1);
-        expect(xlmToStroops(1)).toBe(10_000_000n);
-    });
-
     it('converts fractional XLM amounts', () => {
         expect(stroopsToXlm(5_000_000n)).toBe(0.5);
         expect(xlmToStroops(0.5)).toBe(5_000_000n);
@@ -142,3 +136,4 @@ describe('stroopsToXlm / xlmToStroops conversions', () => {
         expect(stroopsToXlm(largeStroops)).toBe(1_000_000);
     });
 });
+

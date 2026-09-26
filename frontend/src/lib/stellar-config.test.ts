@@ -8,6 +8,7 @@ import {
   getSorobanRpcUrl,
   getNetworkPassphrase,
   validateRequiredEnv,
+  REQUIRED_ENV_VARS,
 } from './stellar-config';
 
 describe('xlmToStroops', () => {
@@ -15,6 +16,43 @@ describe('xlmToStroops', () => {
     expect(xlmToStroops(1)).toBe(BigInt(10_000_000));
     expect(xlmToStroops(0)).toBe(BigInt(0));
   });
+
+  it('converts decimal amounts without floating-point error', () => {
+    expect(xlmToStroops('0.57')).toBe(BigInt(5_700_000));
+    expect(xlmToStroops('19.99')).toBe(BigInt(199_900_000));
+  });
+
+  it('converts exactly 7 decimal places', () => {
+    expect(xlmToStroops('0.1234567')).toBe(BigInt(1234567));
+  });
+
+  it('converts one stroop exactly', () => {
+    expect(xlmToStroops('0.0000001')).toBe(BigInt(1));
+  });
+
+  it('converts large amounts exactly', () => {
+    expect(xlmToStroops('100000000000000000000')).toBe(BigInt("1000000000000000000000000000"));
+  });
+
+  it('rejects values that previously depended on rounding', () => {
+    expect(() => xlmToStroops(0.12345678)).toThrow('more than 7 decimal places');
+  });
+
+  it('throws on non-finite values', () => {
+    expect(() => xlmToStroops(NaN)).toThrow('not a finite number');
+    expect(() => xlmToStroops(Infinity)).toThrow('not a finite number');
+    expect(() => xlmToStroops(-Infinity)).toThrow('not a finite number');
+  });
+
+  it('throws on negative values', () => {
+    expect(() => xlmToStroops(-1)).toThrow('cannot be negative');
+    expect(() => xlmToStroops('-1')).toThrow('cannot be negative');
+  });
+
+  it('throws on amounts with more than 7 decimal places', () => {
+    expect(() => xlmToStroops('0.12345678')).toThrow('more than 7 decimal places');
+  });
+});
 
   it('converts decimal amounts without floating-point error', () => {
     expect(xlmToStroops(0.57)).toBe(BigInt(5_700_000));
@@ -68,13 +106,22 @@ describe('stroopsToXlm', () => {
 
 describe('round-trip conversions', () => {
   it('xlmToStroops -> stroopsToXlm preserves value', () => {
-    const amounts = [0, 0.0000001, 0.57, 1, 19.99, 100, 1_000_000];
-    for (const xlm of amounts) {
+    const amounts: [string | number, string][] = [
+      [0, '0'],
+      ['0.0000001', '0.0000001'],
+      [0.57, '0.57'],
+      [1, '1'],
+      [19.99, '19.99'],
+      [100, '100'],
+      [1_000_000, '1000000'],
+    ];
+    for (const [xlm, expected] of amounts) {
       const stroops = xlmToStroops(xlm);
       const back = stroopsToXlm(stroops);
-      expect(back).toBe(xlm.toString());
+      expect(back).toBe(expected);
     }
   });
+});
 });
 
 describe('Explorer URLs', () => {
@@ -174,4 +221,5 @@ describe('frontend/.env.example divergence check', () => {
     }
   });
 });
+
 
