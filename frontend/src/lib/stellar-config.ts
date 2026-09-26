@@ -126,27 +126,31 @@ export function stroopsToXlm(stroops: bigint | number): string {
   return `${xlmWhole}.${fractionStr}`;
 }
 
-export function xlmToStroops(xlm: number): bigint {
-  if (!Number.isFinite(xlm)) {
-    throw new Error(`Invalid XLM amount: ${xlm} is not a finite number`);
+export function xlmToStroops(xlm: string | number): bigint {
+  if (typeof xlm === 'number') {
+    if (!Number.isFinite(xlm)) {
+      throw new Error(`Invalid XLM amount: ${xlm} is not a finite number`);
+    }
+    if (xlm < 0) {
+      throw new Error(`Invalid XLM amount: ${xlm} cannot be negative`);
+    }
   }
 
-  if (xlm < 0) {
+  // Use a string without floating-point evaluation to avoid rounding errors.
+  const xlmStr = typeof xlm === 'number' ? xlm.toString() : xlm.trim();
+
+  if (xlmStr.startsWith('-')) {
     throw new Error(`Invalid XLM amount: ${xlm} cannot be negative`);
   }
 
-  // Use toFixed(7) to get a fixed-point decimal string — toString() produces
-  // exponent notation for values below 1e-7 (e.g. 0.0000001 → "1e-7"), which
-  // breaks the split-on-dot logic below. toFixed(7) always produces a plain
-  // decimal, e.g. "0.0000001". We round to 7 decimal places (the stroop
-  // precision limit) so values like 0.12345678 become "0.1234568".
-  const xlmStr = xlm.toFixed(7);
-  const [whole, fraction] = xlmStr.split('.');
-
-  if (fraction && fraction.length > 7) {
-    throw new Error(`Invalid XLM amount: ${xlm} has more than 7 decimal places`);
+  if (!/^\d+(\.\d{1,7})?$/.test(xlmStr)) {
+    if (/^\d+\.\d{8,}$/.test(xlmStr)) {
+      throw new Error(`Invalid XLM amount: ${xlm} has more than 7 decimal places`);
+    }
+    throw new Error(`Invalid XLM amount: ${xlm}`);
   }
 
+  const [whole, fraction] = xlmStr.split('.');
   const fractionPadded = (fraction || '').padEnd(7, '0');
   const stroopsStr = (whole || '0') + fractionPadded;
 
@@ -247,3 +251,4 @@ export function validateRequiredEnv(): void {
 // Call validateRequiredEnv() explicitly from your server-startup path or from
 // a server-side route handler that actually needs contract addresses, so the
 // check only fires for real requests — not during static generation.
+

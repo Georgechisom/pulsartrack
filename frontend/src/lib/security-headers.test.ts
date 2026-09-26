@@ -1,18 +1,31 @@
 import { describe, it, expect } from "vitest";
 import { buildCsp, buildSecurityHeaders } from "./security-headers";
 
+function parseCsp(csp: string): Record<string, string[]> {
+  const directives: Record<string, string[]> = {};
+  csp.split(';').forEach((part) => {
+    const [name, ...values] = part.trim().split(/\s+/);
+    if (name) {
+      directives[name] = values;
+    }
+  });
+  return directives;
+}
+
 describe("security headers", () => {
   it("forbids framing and allows only the needed connect origins", () => {
-    const csp = buildCsp({ wsUrl: "wss://api.example.com/ws" });
-    expect(csp).toContain("frame-ancestors 'none'");
-    expect(csp).toContain(
-      "connect-src 'self' wss://api.example.com https://*.stellar.org https://*.sentry.io",
-    );
-    expect(csp).not.toContain("'unsafe-eval'");
+    const parsed = parseCsp(buildCsp({ wsUrl: "wss://api.example.com/ws" }));
+    expect(parsed["frame-ancestors"]).toEqual(["'none'"]);
+    expect(parsed["object-src"]).toEqual(["'none'"]);
+    expect(parsed["connect-src"]).toContain("wss://api.example.com");
+    expect(parsed["connect-src"]).toContain("https://*.stellar.org");
+    expect(parsed["connect-src"]).toContain("https://*.sentry.io");
+    expect(parsed["script-src"]).not.toContain("'unsafe-eval'");
   });
 
   it("allows unsafe-eval only in development", () => {
-    expect(buildCsp({ isDev: true })).toContain("'unsafe-eval'");
+    const parsed = parseCsp(buildCsp({ isDev: true }));
+    expect(parsed["script-src"]).toContain("'unsafe-eval'");
   });
 
   it("sends the CSP as report-only unless enforcement is enabled", () => {
@@ -42,24 +55,24 @@ describe("security headers", () => {
 
   it("uses nonce in script-src and drops unsafe-inline when nonce is provided", () => {
     const nonce = "test-nonce-abc123";
-    const csp = buildCsp({ nonce });
-    expect(csp).toContain(`'nonce-${nonce}'`);
-    expect(csp).not.toContain("'unsafe-inline'");
+    const parsed = parseCsp(buildCsp({ nonce }));
+    expect(parsed["script-src"]).toContain(`'nonce-${nonce}'`);
+    expect(parsed["script-src"]).not.toContain("'unsafe-inline'");
   });
 
   it("falls back to unsafe-inline when no nonce is provided", () => {
-    const csp = buildCsp();
-    expect(csp).toContain("'unsafe-inline'");
-    expect(csp).not.toContain("'nonce-");
+    const parsed = parseCsp(buildCsp());
+    expect(parsed["script-src"]).toContain("'unsafe-inline'");
+    expect(parsed["script-src"].some(val => val.startsWith("'nonce-"))).toBe(false);
   });
 
   it("includes report-uri directive when reportTo is provided", () => {
-    const csp = buildCsp({ reportTo: "/api/csp-report" });
-    expect(csp).toContain("report-uri /api/csp-report");
+    const parsed = parseCsp(buildCsp({ reportTo: "/api/csp-report" }));
+    expect(parsed["report-uri"]).toEqual(["/api/csp-report"]);
   });
 
   it("omits report-uri when reportTo is not provided", () => {
-    const csp = buildCsp();
-    expect(csp).not.toContain("report-uri");
+    const parsed = parseCsp(buildCsp());
+    expect(parsed["report-uri"]).toBeUndefined();
   });
 });

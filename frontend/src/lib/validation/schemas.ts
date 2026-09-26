@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const VALID_DURATIONS = [7, 14, 30, 60, 90] as const;
 
+const xlmAmountRegex = /^\d+(\.\d{1,7})?$/;
+
 export const campaignSchema = z
   .object({
     title: z.string().min(1, "Title is required").max(200, "Title must be 200 characters or less"),
@@ -13,12 +15,18 @@ export const campaignSchema = z
     budgetXlm: z
       .string()
       .min(1, "Budget is required")
+      .refine((v) => xlmAmountRegex.test(v.trim()), {
+        message: "Amount cannot have more than 7 decimal places",
+      })
       .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, {
         message: "Budget must be a positive number",
       }),
     costPerViewXlm: z
       .string()
       .min(1, "Cost per view is required")
+      .refine((v) => xlmAmountRegex.test(v.trim()), {
+        message: "Amount cannot have more than 7 decimal places",
+      })
       .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, {
         message: "Cost per view must be a positive number",
       }),
@@ -83,6 +91,9 @@ export function createBidSchema(minBid: number) {
     bidAmountXlm: z
       .string()
       .min(1, "Bid amount is required")
+      .refine((v) => xlmAmountRegex.test(v.trim()), {
+        message: "Amount cannot have more than 7 decimal places",
+      })
       .refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, {
         message: "Bid amount must be a positive number",
       })
@@ -118,7 +129,10 @@ export const targetingSchema = z
       .max(1000, "Reputation must be at most 1000"),
     requireKyc: z.boolean(),
     excludeFraud: z.boolean(),
-    maxCpmXlm: z.string(),
+    maxCpmXlm: z.string().optional().refine((v) => {
+      if (!v) return true;
+      return xlmAmountRegex.test(v.trim());
+    }, { message: "Amount cannot have more than 7 decimal places" }),
   })
   .refine((data) => data.maxAge >= data.minAge, {
     message: "Max age must be greater than or equal to min age",
